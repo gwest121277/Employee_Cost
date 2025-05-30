@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Turnover Cost Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 220px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #555 transparent transparent transparent;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4 selection:bg-sky-500 selection:text-white">
+
+    <div class="bg-slate-800 shadow-2xl rounded-xl p-6 md:p-10 w-full max-w-2xl">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-sky-400">Employee Turnover Cost Calculator</h1>
+            <p class="text-slate-400 mt-2">Estimate the financial impact of employee departures.</p>
+        </header>
+
+        <form id="turnoverForm" class="space-y-6">
+            <div>
+                <label for="role" class="block text-sm font-medium text-slate-300 mb-1">1. What role or position do you want to calculate cost for?</label>
+                <input type="text" id="role" name="role" class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition duration-150" placeholder="e.g., Software Engineer, Sales Manager">
+            </div>
+
+            <div>
+                <label for="avgSalary" class="block text-sm font-medium text-slate-300 mb-1">2. What are the employee's average annual salaries in that role? ($)</label>
+                <input type="number" id="avgSalary" name="avgSalary" class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition duration-150" placeholder="e.g., 60000">
+            </div>
+
+            <div>
+                <label for="numExits" class="block text-sm font-medium text-slate-300 mb-1">3. How many employees in that role have quit or been let go in the last 12 months?</label>
+                <input type="number" id="numExits" name="numExits" class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition duration-150" placeholder="e.g., 3">
+            </div>
+
+            <div>
+                <label for="fixedCost" class="block text-sm font-medium text-slate-300 mb-1">4. What fixed costs are associated with a new hire in this role? ($)
+                    <span class="text-xs text-slate-400">(e.g., certifications, swag, job-board listing, background check, tools, courses etc.)</span>
+                </label>
+                <input type="number" id="fixedCost" name="fixedCost" class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition duration-150" placeholder="e.g., 1500">
+            </div>
+
+            <div>
+                <label for="costPercent" class="block text-sm font-medium text-slate-300 mb-1">
+                    Cost Percentage of Salary (%)
+                    <div class="tooltip inline-block ml-1">
+                        <span class="text-sky-400 cursor-help">(?)</span>
+                        <span class="tooltiptext">Estimates 'soft' costs like lost productivity, rookie mistakes, manager time, and morale drag. The Center for American Progress has also documented that for hourly employees replacement can be 16% of salary, but for exempt/professional roles it may soar above 200%, depending on tenure and skill level. Most studies use 30-40%.</span>
+                    </div>
+                </label>
+                <input type="number" id="costPercent" name="costPercent" value="35" class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition duration-150" placeholder="e.g., 35 for 35%">
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
+                <button type="button" id="calculateBtn" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-opacity-75">
+                    Calculate Cost
+                </button>
+                <button type="button" id="clearBtn" class="w-full bg-slate-600 hover:bg-slate-500 text-slate-100 font-semibold py-3 px-6 rounded-lg transition duration-150 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-opacity-75">
+                    Clear Form
+                </button>
+            </div>
+        </form>
+
+        <div id="resultSection" class="mt-10 p-6 bg-slate-700 rounded-lg shadow-inner" style="display: none;">
+            <h2 class="text-2xl font-semibold text-sky-300 mb-4">Calculation Results for <span id="resultRole" class="font-bold"></span></h2>
+            <div class="space-y-3 text-lg">
+                <p>Cost for One Exit: <span id="oneExitCost" class="font-bold text-yellow-400"></span></p>
+                <p class="text-xl">Estimated Annual Turnover Cost: <span id="totalCost" class="font-bold text-red-400 text-2xl"></span></p>
+            </div>
+            <div id="errorMessage" class="mt-4 text-red-400 font-medium"></div>
+
+            <div id="emailOptInSection" class="mt-8 pt-6 border-t border-slate-600" style="display: none;">
+                <h3 class="text-xl font-semibold text-sky-200 mb-2">Lets Break This Down</h3>
+                <p class="text-slate-300 mb-4 text-sm">How to lower your direct replacement cost.</p>
+                <div class="flex flex-col sm:flex-row items-stretch sm:space-x-3 space-y-3 sm:space-y-0">
+                    <input type="email" id="userEmail" name="userEmail" class="w-full sm:flex-1 p-3 bg-slate-700/70 border border-slate-500 rounded-lg text-slate-100 focus:ring-2 focus:ring-sky-500 placeholder-slate-400" placeholder="Enter your email for your detailed report">
+                    <button type="button" id="submitEmailBtn" class="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-5 rounded-lg transition duration-150 shadow-md hover:shadow-lg whitespace-nowrap">
+                        Submit.
+                    </button>
+                </div>
+                <div id="emailOptInError" class="mt-2 text-sm text-red-400"></div>
+                <div id="emailOptInConfirmation" class="mt-2 text-sm text-green-400"></div>
+            </div>
+            </div>
+
+        <div id="explanationSection" class="mt-10 p-6 bg-slate-700 rounded-lg shadow-inner">
+            <h3 class="text-xl font-semibold text-sky-300 mb-4">Understanding the Calculation</h3>
+            <p class="text-slate-300 mb-2 text-sm">The total turnover cost is calculated using the formula:</p>
+            <p class="text-center text-md font-mono bg-slate-800 p-3 rounded-md text-sky-300 my-3">
+                Total Cost = # Exits × [ (Avg Salary × Cost %) + Fixed Cost ]
+            </p>
+            <div class="space-y-3 mt-4 text-sm">
+                <details class="bg-slate-800 p-3 rounded-lg cursor-pointer hover:bg-slate-600/50 transition">
+                    <summary class="font-semibold text-slate-200">Average Salary</summary>
+                    <p class="text-slate-400 mt-1 pl-4">Annual pay for one person in that role. This represents the production value you lose while the job is empty and during the ramp-up time of a new hire.</p>
+                </details>
+                <details class="bg-slate-800 p-3 rounded-lg cursor-pointer hover:bg-slate-600/50 transition">
+                    <summary class="font-semibold text-slate-200">Cost % of Salary</summary>
+                    <p class="text-slate-400 mt-1 pl-4">A decimal fraction (e.g., 0.35 for 35%) that estimates the "soft" costs of one exit. These include lost productivity from the vacant position, time spent by other employees covering duties, reduced team morale, interview time, onboarding time, and the initial lower productivity/potential mistakes of a new hire. Most studies suggest a range of 0.30 to 0.40 (30-40%).</p>
+                </details>
+                <details class="bg-slate-800 p-3 rounded-lg cursor-pointer hover:bg-slate-600/50 transition">
+                    <summary class="font-semibold text-slate-200">Fixed Cost per Exit</summary>
+                    <p class="text-slate-400 mt-1 pl-4">The direct, hard cash you spend each time you need to back-fill a position. This includes expenses like advertising the job opening, recruiter fees (if applicable), background checks, drug screenings, certification courses, essential tools or equipment for the new hire, and company swag. These costs are incurred regardless of the salary.</p>
+                </details>
+                <details class="bg-slate-800 p-3 rounded-lg cursor-pointer hover:bg-slate-600/50 transition">
+                    <summary class="font-semibold text-slate-200"># Exits (in 12 months)</summary>
+                    <p class="text-slate-400 mt-1 pl-4">The total number of employees in the specified role who have left the company (voluntarily or involuntarily) over the past year. This figure multiplies the single-exit cost to provide an estimated annual impact.</p>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center text-sm text-slate-500 mt-12 pb-6">
+        <p>&copy; <span id="currentYear"></span> Turnover Cost Calculator by Gregory Wyatt West.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentYearEl = document.getElementById('currentYear');
+            if (currentYearEl) {
+                currentYearEl.textContent = new Date().getFullYear();
+            }
+
+            const calculateBtn = document.getElementById('calculateBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const form = document.getElementById('turnoverForm');
+            const resultSection = document.getElementById('resultSection');
+            const errorMessageEl = document.getElementById('errorMessage');
+            const roleInputEl = document.getElementById('role');
+
+            // Email Opt-in Elements
+            const emailOptInSection = document.getElementById('emailOptInSection');
+            const userEmailInput = document.getElementById('userEmail');
+            const submitEmailBtn = document.getElementById('submitEmailBtn');
+            const emailOptInConfirmation = document.getElementById('emailOptInConfirmation');
+            const emailOptInError = document.getElementById('emailOptInError');
+
+            function displayError(message) {
+                if (errorMessageEl) errorMessageEl.textContent = message;
+                if (resultSection) {
+                    resultSection.style.display = 'block';
+                    if (emailOptInSection) emailOptInSection.style.display = 'none'; // Hide opt-in on main error
+                    if (errorMessageEl) errorMessageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+
+            if (calculateBtn) {
+                calculateBtn.addEventListener('click', () => {
+                    if (errorMessageEl) errorMessageEl.textContent = '';
+                    if (resultSection) resultSection.style.display = 'none';
+                    if (emailOptInSection) emailOptInSection.style.display = 'none';
+                    if (emailOptInConfirmation) emailOptInConfirmation.textContent = '';
+                    if (emailOptInError) emailOptInError.textContent = '';
+
+                    const role = roleInputEl ? roleInputEl.value.trim() : "";
+                    const avgSalaryInput = document.getElementById('avgSalary').value;
+                    const numExitsInput = document.getElementById('numExits').value;
+                    const fixedCostInput = document.getElementById('fixedCost').value;
+                    const costPercentInput = document.getElementById('costPercent').value;
+
+                    if (!role) { displayError("Please enter the role or position."); return; }
+                    if (avgSalaryInput === '' || isNaN(parseFloat(avgSalaryInput)) || parseFloat(avgSalaryInput) < 0) { displayError("Please enter a valid average salary (non-negative number)."); return; }
+                    if (numExitsInput === '' || isNaN(parseInt(numExitsInput)) || parseInt(numExitsInput) < 0) { displayError("Please enter a valid number of exits (non-negative integer)."); return; }
+                    if (fixedCostInput === '' || isNaN(parseFloat(fixedCostInput)) || parseFloat(fixedCostInput) < 0) { displayError("Please enter valid fixed costs (non-negative number)."); return; }
+                    if (costPercentInput === '' || isNaN(parseFloat(costPercentInput)) || parseFloat(costPercentInput) < 0 || parseFloat(costPercentInput) > 100) { displayError("Please enter a valid cost percentage (0-100)."); return; }
+
+                    const avgSalary = parseFloat(avgSalaryInput);
+                    const numExits = parseInt(numExitsInput);
+                    const fixedCost = parseFloat(fixedCostInput);
+                    const costPercent = parseFloat(costPercentInput) / 100;
+
+                    const oneExitCostValue = (avgSalary * costPercent) + fixedCost;
+                    const totalCostValue = numExits * oneExitCostValue;
+
+                    const resultRoleEl = document.getElementById('resultRole');
+                    const oneExitCostEl = document.getElementById('oneExitCost');
+                    const totalCostEl = document.getElementById('totalCost');
+
+                    if(resultRoleEl) resultRoleEl.textContent = role || "the specified role";
+                    if(oneExitCostEl) oneExitCostEl.textContent = `$${oneExitCostValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    if(totalCostEl) totalCostEl.textContent = `$${totalCostValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    
+                    if (resultSection) {
+                        resultSection.style.display = 'block';
+                        if (emailOptInSection) emailOptInSection.style.display = 'block'; // Show opt-in section
+                        resultSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
+            }
+
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    if (form) form.reset();
+                    if (resultSection) resultSection.style.display = 'none';
+                    if (errorMessageEl) errorMessageEl.textContent = '';
+                    if (emailOptInSection) emailOptInSection.style.display = 'none';
+                    if (userEmailInput) userEmailInput.value = '';
+                    if (emailOptInConfirmation) emailOptInConfirmation.textContent = '';
+                    if (emailOptInError) emailOptInError.textContent = '';
+                    if (roleInputEl) roleInputEl.focus();
+                });
+            }
+
+            if (submitEmailBtn) {
+                submitEmailBtn.addEventListener('click', function() {
+                    const email = userEmailInput ? userEmailInput.value.trim() : '';
+                    if (emailOptInConfirmation) emailOptInConfirmation.textContent = '';
+                    if (emailOptInError) emailOptInError.textContent = '';
+
+                    if (!email) {
+                        if (emailOptInError) emailOptInError.textContent = 'Please enter your email address.';
+                        return;
+                    }
+                    // Basic email validation
+                    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailPattern.test(email)) {
+                        if (emailOptInError) emailOptInError.textContent = 'Please enter a valid email address.';
+                        return;
+                    }
+
+                    // Simulate submission
+                    if (emailOptInConfirmation) {
+                        emailOptInConfirmation.textContent = 'Your report is on its way to ' + email + '.';
+                    }
+                    if (userEmailInput) userEmailInput.value = ''; // Clear input after "submission"
+
+                    // Here you would typically send the email to your backend or email marketing service
+                    console.log('Email submitted:', email);
+                });
+            }
+        });
+    </script>
+
+</body>
+</html>
