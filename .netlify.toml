@@ -1,0 +1,2 @@
+[[functions.submitLead]] # Make sure 'submitLead' matches your function's JavaScript filename (without .js)
+  timeout = 25 # This sets the timeout to 25 seconds
