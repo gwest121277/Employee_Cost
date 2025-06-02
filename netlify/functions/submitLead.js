@@ -65,7 +65,7 @@ exports.handler = async function(event, context) {
         } else {
             const systemMessage = `You are a professional financial advisor with deep expertise in employee turnover costs.
 A business owner has just used an employee turnover cost calculator and will provide you with their input data.
-Your task is to generate a visually appealing and professionally structured email report. The report should be direct, clear, concise, and exceptionally helpful.
+Your task is to generate a visually appealing and professionally structured email report. The report should be direct, clear, concise, exceptionally helpful, and relevant to the job title provided.
 
 The report must include these main sections, clearly delineated:
 1.  Input Confirmation: Briefly restate the provided input data.
