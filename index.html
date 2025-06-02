@@ -245,54 +245,68 @@
                     if (roleInputEl) roleInputEl.focus();
                 });
             }
-// Collect all calculator data
-const calculatorData = {
-    role: document.getElementById('role') ? document.getElementById('role').value.trim() : "",
-    avgSalary: document.getElementById('avgSalary') ? parseFloat(document.getElementById('avgSalary').value) : null,
-    numExits: document.getElementById('numExits') ? parseInt(document.getElementById('numExits').value) : null,
-    fixedCost: document.getElementById('fixedCost') ? parseFloat(document.getElementById('fixedCost').value) : null,
-    costPercent: document.getElementById('costPercent') ? parseFloat(document.getElementById('costPercent').value) : null
-};
 
-const dataToSend = {
-    email: email, // The 'email' variable is already defined in your existing code block
-    calculatorInputs: calculatorData
-};
+            if (submitEmailBtn) {
+                submitEmailBtn.addEventListener('click', function() { // Ensure this is a function
+                    const email = userEmailInput ? userEmailInput.value.trim() : ''; // Define email here
+                    if (emailOptInConfirmation) emailOptInConfirmation.textContent = '';
+                    if (emailOptInError) emailOptInError.textContent = '';
 
-// Change button text to show "Submitting..." and disable it
-const originalButtonText = submitEmailBtn.textContent;
-submitEmailBtn.textContent = 'Submitting...';
-submitEmailBtn.disabled = true;
+                    if (!email) {
+                        if (emailOptInError) emailOptInError.textContent = 'Please enter your email address.';
+                        return;
+                    }
+                    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailPattern.test(email)) {
+                        if (emailOptInError) emailOptInError.textContent = 'Please enter a valid email address.';
+                        return;
+                    }
 
-fetch('/.netlify/functions/submitLead', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(dataToSend),
-})
-.then(response => response.json())
-.then(responseData => {
-    console.log('Success from backend:', responseData);
-    if (emailOptInConfirmation) {
-        emailOptInConfirmation.textContent = 'Report request processed! Check your email (' + email + ') for details soon.';
-    }
-    // Note: Do not clear the email input here if you want it to persist
-    // if (userEmailInput) userEmailInput.value = ''; 
-})
-.catch((error) => {
-    console.error('Error sending data to backend:', error);
-    if (emailOptInError) {
-        emailOptInError.textContent = 'There was an error submitting your request. Please try again.';
-    }
-})
-.finally(() => {
-    // Re-enable button and restore text
-    submitEmailBtn.textContent = originalButtonText;
-    submitEmailBtn.disabled = false;
-});
+                    // This is where the new code for fetching data goes:
+                    const calculatorData = {
+                        role: document.getElementById('role') ? document.getElementById('role').value.trim() : "",
+                        avgSalary: document.getElementById('avgSalary') ? parseFloat(document.getElementById('avgSalary').value) : null,
+                        numExits: document.getElementById('numExits') ? parseInt(document.getElementById('numExits').value) : null,
+                        fixedCost: document.getElementById('fixedCost') ? parseFloat(document.getElementById('fixedCost').value) : null,
+                        costPercent: document.getElementById('costPercent') ? parseFloat(document.getElementById('costPercent').value) : null
+                    };
+
+                    const dataToSend = {
+                        email: email, 
+                        calculatorInputs: calculatorData
+                    };
+
+                    const originalButtonText = submitEmailBtn.textContent;
+                    submitEmailBtn.textContent = 'Submitting...';
+                    submitEmailBtn.disabled = true;
+
+                    fetch('/.netlify/functions/submitLead', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(dataToSend),
+                    })
+                    .then(response => response.json())
+                    .then(responseData => {
+                        console.log('Success from backend:', responseData);
+                        if (emailOptInConfirmation) {
+                            emailOptInConfirmation.textContent = 'Report request processed! Check your email (' + email + ') for details soon.';
+                        }
+                        // if (userEmailInput) userEmailInput.value = ''; // Optionally clear after successful "submission logic"
+                    })
+                    .catch((error) => {
+                        console.error('Error sending data to backend:', error);
+                        if (emailOptInError) {
+                            emailOptInError.textContent = 'There was an error submitting your request. Please try again.';
+                        }
+                    })
+                    .finally(() => {
+                        submitEmailBtn.textContent = originalButtonText;
+                        submitEmailBtn.disabled = false;
+                    });
+                }); // End of submitEmailBtn event listener
+            } // End of if (submitEmailBtn)
+
+        }); // End of DOMContentLoaded event listener
     </script>
-
-</body>
-</html>
-
