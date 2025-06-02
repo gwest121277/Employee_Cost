@@ -57,9 +57,10 @@ exports.handler = async function(event, context) {
             console.error('Calculator input data is missing for OpenAI call.');
             aiReport = "AI report could not be generated: calculator input data was missing.";
         } else {
-            const systemMessage = `You are a professional financial advisor with deep expertise in employee turnover costs. 
+        const systemMessage = `You are a professional financial advisor with deep expertise in employee turnover costs.
 A business owner has just used an employee turnover cost calculator and will provide you with their input data.
-Using the provided data, generate a clear, concise, and helpful report for the business owner with four main parts:
+Your task is to generate a visually pleasing, structured email report that is direct, clear, concise, and helpful for the business owner.
+The report should have four main parts:
 
 Input Confirmation
 Briefly restate the provided input data to build trust and ensure clarity.
@@ -76,33 +77,40 @@ The greatest long-term ROI
 Output Validation & Insight
 Offer a short, credible explanation validating the calculator’s result. Emphasize that the total cost includes both direct and indirect costs, which are often underestimated.
 
+Formatting Instructions:
+- Structure the report with clear sections, using markdown for headings (e.g., # Section Title, ## Subsection Title).
+- Use bullet points (e.g., using - or *) for lists, key details, or actionable steps to enhance readability.
+- Employ other markdown for emphasis where appropriate (e.g., **bolding for key terms** or _italics_).
+- Ensure the overall report is direct, clear, and concise. Skip fluff and keep it minimal while being professional.
+- Remember this will be sent as an email, so the markdown should be commonly supported by email clients.
+
 Tone: Professional, practical, and empathetic. Assume the user may be surprised by the total cost and is seeking both reassurance and actionable guidance.
-Length: Keep the response well-structured and concise, but allow enough depth to make each section informative (target: ~400–600 tokens total).
+Length: Keep the response well-structured and concise, but allow enough depth to make each section informative (target: ~400–600 tokens total, but prioritize clarity and structure over hitting a specific token count).
 CTA: “Need help applying these insights? Book a quick consult at https://calendly.com/gwest1212/30min to explore customized solutions.”`;
 
-            const userMessage = `Here is the employee turnover data:
+        const userMessage = `Here is the employee turnover data:
 Role: ${calculatorInputs.role || 'Not provided'}
 Average Annual Salary: $${calculatorInputs.avgSalary ? calculatorInputs.avgSalary.toLocaleString() : 'Not provided'}
 Number of Exits (last 12 months): ${calculatorInputs.numExits !== null && calculatorInputs.numExits !== undefined ? calculatorInputs.numExits : 'Not provided'}
 Fixed Cost per New Hire: $${calculatorInputs.fixedCost ? calculatorInputs.fixedCost.toLocaleString() : 'Not provided'}
 Estimated Cost Percentage of Salary for Turnover: ${calculatorInputs.costPercent !== null && calculatorInputs.costPercent !== undefined ? calculatorInputs.costPercent : 'Not provided'}%`;
 
-            try {
-                const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-4o-mini', // Using gpt-4o-mini as a good default
-                        messages: [
-                            { role: 'system', content: systemMessage },
-                            { role: 'user', content: userMessage }
-                        ],
-                        max_tokens: 450 // Adjusted based on previous successful test for length
-                    })
-                });
+        try {
+            const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini', // Updated model
+                    messages: [
+                        { role: 'system', content: systemMessage },
+                        { role: 'user', content: userMessage }
+                    ],
+                    max_tokens: 400 // Adjusted slightly, ensure it's enough for structured content
+                })
+            });
                 if (!openaiResponse.ok) {
                     const errorData = await openaiResponse.json().catch(() => openaiResponse.text()); 
                     console.error('Error from OpenAI API:', errorData);
