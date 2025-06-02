@@ -103,7 +103,7 @@ Estimated Cost Percentage of Salary for Turnover: ${calculatorInputs.costPercent
                             { role: 'system', content: systemMessage },
                             { role: 'user', content: userMessage }
                         ],
-                        max_tokens: 100
+                        max_tokens: 400
                     })
                 });
                 console.log('Received response from OpenAI API.'); // Log after call returns
