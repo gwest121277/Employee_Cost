@@ -84,7 +84,8 @@ Formatting Instructions for a Visually Pleasing Email (using Markdown):
 
 Tone: Professional, practical, and empathetic. The user might be surprised by the costs; offer reassurance and clear guidance.
 Length: Aim for around 400-600 tokens, ensuring all requested information and formatting are included without unnecessary verbosity.
-CTA: Conclude with the call to action: "Need help applying these insights? Book a quick consult at https://calendly.com/gwest1212/30min to explore customized solutions." Ensure the CTA is clearly visible at the end.`;
+CTA: Conclude with the call to action: "Need help applying these insights? Book a quick consult at https://calendly.com/gwest1212/30min to explore customized solutions." Ensure the CTA is clearly visible at the end.
+Signature: The report must end immediately after the Call To Action. Do not add any generic placeholder signatures (e.g., "[Your Name]", "[Your Title]", "[Your Company]", "[Your Contact Information]").`; // <-- MODIFIED LINE HERE`;
 
             const userMessage = `Here is the employee turnover data:
 Role: ${calculatorInputs.role || 'Not provided'}
