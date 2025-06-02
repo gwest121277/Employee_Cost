@@ -95,7 +95,7 @@ Estimated Cost Percentage of Salary for Turnover: ${calculatorInputs.costPercent
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: 'gpt-4.1', // Using gpt-4o-mini as a good default
+                        model: 'gpt-4o-mini', // Using gpt-4o-mini as a good default
                         messages: [
                             { role: 'system', content: systemMessage },
                             { role: 'user', content: userMessage }
