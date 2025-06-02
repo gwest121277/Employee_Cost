@@ -100,7 +100,7 @@ Estimated Cost Percentage of Salary for Turnover: ${calculatorInputs.costPercent
                             { role: 'system', content: systemMessage },
                             { role: 'user', content: userMessage }
                         ],
-                        max_tokens: 550 // Adjusted based on previous successful test for length
+                        max_tokens: 450 // Adjusted based on previous successful test for length
                     })
                 });
                 if (!openaiResponse.ok) {
