@@ -33,21 +33,26 @@ exports.handler = async function(event, context) {
             if (!responseFromGoogleScript.ok) {
                 const errorBody = await responseFromGoogleScript.text();
                 console.error('Error from Google Script:', errorBody);
+                googleSheetResponseData = { status: 'error', message: 'Failed to send to Google Sheet', details: errorBody };
             } else {
                 googleSheetResponseData = await responseFromGoogleScript.json();
                 console.log('Response from Google Script:', googleSheetResponseData);
             }
         } catch (googleError) {
             console.error('Error calling Google Script:', googleError);
+            googleSheetResponseData = { status: 'error', message: `Error calling Google Script: ${googleError.message}` };
         }
     }
 
     // --- 2. Call OpenAI API to generate the report ---
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-    let aiReport = "AI report could not be generated due to a configuration issue or API error.";
+    let aiReport = "AI report could not be generated. Please check function logs for details."; // Default/error message
 
     if (!OPENAI_API_KEY) {
         console.error('OpenAI API Key is not configured in environment variables.');
+    } else if (!calculatorInputs) { // Check if calculatorInputs exists
+        console.error('Calculator input data is missing.');
+        aiReport = "AI report could not be generated because calculator input data was missing.";
     } else {
         const systemMessage = `You are a professional financial advisor with deep expertise in employee turnover costs. 
 A business owner has just used an employee turnover cost calculator and will provide you with their input data.
@@ -73,11 +78,11 @@ Length: Keep the response well-structured and concise, but allow enough depth to
 CTA: “Need help applying these insights? Book a quick consult at https://calendly.com/gwest1212/30min to explore customized solutions.”`;
 
         const userMessage = `Here is the employee turnover data:
-Role: ${calculatorInputs.role}
-Average Annual Salary: $${calculatorInputs.avgSalary.toLocaleString()}
-Number of Exits (last 12 months): ${calculatorInputs.numExits}
-Fixed Cost per New Hire: $${calculatorInputs.fixedCost.toLocaleString()}
-Estimated Cost Percentage of Salary for Turnover: ${calculatorInputs.costPercent}%`;
+Role: ${calculatorInputs.role || 'Not provided'}
+Average Annual Salary: $${calculatorInputs.avgSalary ? calculatorInputs.avgSalary.toLocaleString() : 'Not provided'}
+Number of Exits (last 12 months): ${calculatorInputs.numExits !== null && calculatorInputs.numExits !== undefined ? calculatorInputs.numExits : 'Not provided'}
+Fixed Cost per New Hire: $${calculatorInputs.fixedCost ? calculatorInputs.fixedCost.toLocaleString() : 'Not provided'}
+Estimated Cost Percentage of Salary for Turnover: ${calculatorInputs.costPercent !== null && calculatorInputs.costPercent !== undefined ? calculatorInputs.costPercent : 'Not provided'}%`;
 
         try {
             const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -86,19 +91,19 @@ Estimated Cost Percentage of Salary for Turnover: ${calculatorInputs.costPercent
                     'Authorization': `Bearer ${OPENAI_API_KEY}`,
                     'Content-Type': 'application/json'
                 },
-               
-body: JSON.stringify({
-    model: 'gpt-4o-mini', // Changed from 'gpt-3.5-turbo'
-    messages: [
-        { role: 'system', content: systemMessage },
-        { role: 'user', content: userMessage }
-    ], max_tokens: 600 // Increased slightly for potentially longer reports with CTA
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini', 
+                    messages: [
+                        { role: 'system', content: systemMessage },
+                        { role: 'user', content: userMessage }
+                    ],
+                    max_tokens: 600 
                 })
             });
             if (!openaiResponse.ok) {
-                const errorData = await openaiResponse.json();
+                const errorData = await openaiResponse.json().catch(() => openaiResponse.text()); // Try to parse JSON, fallback to text
                 console.error('Error from OpenAI API:', errorData);
-                aiReport = `Error generating AI report: ${errorData.error ? errorData.error.message : 'Unknown OpenAI error'}`;
+                aiReport = `Error generating AI report: ${typeof errorData === 'string' ? errorData : (errorData.error ? errorData.error.message : 'Unknown OpenAI error')}`;
             } else {
                 const responseData = await openaiResponse.json();
                 if (responseData.choices && responseData.choices.length > 0 && responseData.choices[0].message) {
@@ -106,3 +111,83 @@ body: JSON.stringify({
                     console.log('AI Generated Report:', aiReport);
                 } else {
                     console.error('Unexpected response structure from OpenAI:', responseData);
+                    aiReport = 'AI generated a response, but it could not be read correctly.';
+                }
+            }
+        } catch (aiError) {
+            console.error('Error calling OpenAI API:', aiError);
+            aiReport = `Error calling OpenAI API: ${aiError.message}`;
+        }
+    }
+
+    // --- 3. Send the AI report via Mailgun ---
+    const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY;
+    const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN;
+    const YOUR_SENDING_EMAIL = `greg@${MAILGUN_DOMAIN}`; 
+    let mailgunResponseData = null;
+
+    if (!MAILGUN_API_KEY || !MAILGUN_DOMAIN) {
+        console.error('Mailgun API Key or Domain is not configured in environment variables.');
+    } else if (email && aiReport && !aiReport.startsWith("AI report could not be generated")) { // Only send if email and valid report exist
+        const htmlAiReport = aiReport.replace(/\n/g, '<br>');
+
+        const mailgunUrl = `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}/messages`;
+        const emailParams = new URLSearchParams();
+        emailParams.append('from', `Employee Cost Calculator <${YOUR_SENDING_EMAIL}>`);
+        emailParams.append('to', email);
+        emailParams.append('subject', 'Your Employee Turnover Cost Report');
+        emailParams.append('html', `<p>Hi there,</p><p>Thank you for using the Employee Turnover Cost Calculator. Here is your personalized report:</p><hr>${htmlAiReport}<hr><p>We hope this helps!</p>`);
+        // emailParams.append('text', `Hi there,\n\nThank you for using the Employee Turnover Cost Calculator. Here is your personalized report:\n\n${aiReport}\n\nWe hope this helps!`);
+            
+        try {
+            const responseFromMailgun = await fetch(mailgunUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Basic ${Buffer.from(`api:${MAILGUN_API_KEY}`).toString('base64')}`,
+                },
+                body: emailParams
+            });
+
+            if (!responseFromMailgun.ok) {
+                const errorBody = await responseFromMailgun.json().catch(() => responseFromMailgun.text());
+                console.error('Error from Mailgun API:', errorBody);
+                mailgunResponseData = { status: 'error', message: 'Failed to send email', details: errorBody };
+            } else {
+                mailgunResponseData = await responseFromMailgun.json();
+                console.log('Response from Mailgun API:', mailgunResponseData);
+            }
+        } catch (mailgunError) {
+            console.error('Error calling Mailgun API:', mailgunError);
+            mailgunResponseData = { status: 'error', message: `Error sending email: ${mailgunError.message}` };
+        }
+    } else if (!email) {
+        console.log('No email provided by user; skipping Mailgun call.');
+    } else {
+        console.log('AI report was not successfully generated; skipping Mailgun call.');
+    }
+
+    // --- Return a consolidated response to the frontend ---
+    return {
+        statusCode: 200,
+        body: JSON.stringify({
+            message: 'Process complete. Check logs for details. Email sending status reflected in mailgunResponse.',
+            googleResponse: googleSheetResponseData,
+            aiReportPreview: aiReport.substring(0, 100) + "...", 
+            mailgunResponse: mailgunResponseData
+        })
+    };
+
+} catch (error) { // This catch block is for errors outside the initial JSON.parse, e.g. if incomingData is null
+    console.error('Outer critical error in Netlify function:', error);
+    // Ensure incomingData exists before trying to access properties on it
+    const emailForError = (typeof incomingData !== 'undefined' && incomingData && incomingData.email) ? incomingData.email : "No email captured";
+    return {
+        statusCode: 500,
+        body: JSON.stringify({
+            message: 'General error processing your request.',
+            error: error.message,
+            user_email_for_reference: emailForError
+        })
+    };
+}
+};
